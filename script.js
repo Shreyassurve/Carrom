@@ -28,6 +28,7 @@ const coins = [
   { id: "white1", x: 230, y: 180, vx: 0, vy: 0, radius: coinRadius },
   { id: "white2", x: 260, y: 180, vx: 0, vy: 0, radius: coinRadius },
   { id: "black1", x: 200, y: 230, vx: 0, vy: 0, radius: coinRadius },
+  { id: "white3", x: 250, y: 180, vx: 0, vy: 0, radius: coinRadius },
   { id: "redCoin", x: 230, y: 230, vx: 0, vy: 0, radius: coinRadius },
 ];
 
@@ -52,6 +53,9 @@ function shootStriker() {
   strikerVelocity.x = Math.cos(radians) * speed;
   strikerVelocity.y = Math.sin(radians) * speed;
   isStrikerMoving = true;
+
+  // Disable the shoot button to prevent further clicks while the striker is moving
+  shootBtn.disabled = true;
 }
 
 // Check for collision between two circular objects
@@ -108,6 +112,9 @@ function checkPocket(obj, isStriker = false) {
         striker.style.display = 'none'; // Hide the striker
         console.log('Striker fell into the pocket!');
         resetStrikerPosition(); // Reset striker position
+
+        // Re-enable the shoot button when striker falls into a pocket
+        shootBtn.disabled = false;
       } else {
         const coinElement = document.getElementById(obj.id);
         coinElement.style.display = 'none'; // Hide the coin
@@ -149,6 +156,9 @@ function updateStriker() {
     if (Math.abs(strikerVelocity.x) < 0.1 && Math.abs(strikerVelocity.y) < 0.1) {
       isStrikerMoving = false;
       resetStrikerPosition(); // Reset the striker position when it stops
+
+      // Re-enable the shoot button since the striker has stopped
+      shootBtn.disabled = false;
     }
 
     // Check if striker falls into a pocket
