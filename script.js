@@ -13,7 +13,7 @@ const strikerRadius = 20;
 const coinRadius = 15;
 const pocketRadius = 25;
 
-let strikerPosition = { x: 230, y: 460 }; // Starting position
+let strikerPosition = { x: 238, y: 460 }; // Starting position
 let strikerVelocity = { x: 0, y: 0 };
 let isStrikerMoving = false;
 
@@ -107,6 +107,7 @@ function checkPocket(obj, isStriker = false) {
         isStrikerMoving = false;
         striker.style.display = 'none'; // Hide the striker
         console.log('Striker fell into the pocket!');
+        resetStrikerPosition(); // Reset striker position
       } else {
         const coinElement = document.getElementById(obj.id);
         coinElement.style.display = 'none'; // Hide the coin
@@ -115,6 +116,15 @@ function checkPocket(obj, isStriker = false) {
       }
     }
   });
+}
+
+// Reset striker position to the starting point
+function resetStrikerPosition() {
+  strikerPosition = { x: 238, y: 419 };
+  strikerVelocity = { x: 0, y: 0 };
+  striker.style.left = `${strikerPosition.x}px`;
+  striker.style.top = `${strikerPosition.y}px`;
+  striker.style.display = 'block'; // Show the striker again
 }
 
 // Update striker position
@@ -131,9 +141,6 @@ function updateStriker() {
     if (strikerPosition.x <= 0 || strikerPosition.x >= 460) strikerVelocity.x *= -1;
     if (strikerPosition.y <= 0 || strikerPosition.y >= 460) strikerVelocity.y *= -1;
 
-   
-   
-   
     // Update striker position on screen
     striker.style.left = `${strikerPosition.x}px`;
     striker.style.top = `${strikerPosition.y}px`;
@@ -141,6 +148,7 @@ function updateStriker() {
     // Stop movement if velocity is minimal
     if (Math.abs(strikerVelocity.x) < 0.1 && Math.abs(strikerVelocity.y) < 0.1) {
       isStrikerMoving = false;
+      resetStrikerPosition(); // Reset the striker position when it stops
     }
 
     // Check if striker falls into a pocket
