@@ -10,6 +10,9 @@ const predictionCanvas = document.getElementById("predictionCanvas");
 const ctx = predictionCanvas.getContext("3d");
 const horizontalControl = document.getElementById('horizontalControl'); // Get the horizontal control slider
 
+// Scoreboard element
+const scoreBoard = document.getElementById('scoreBoard'); // Assume there's a scoreboard element in the HTML
+let score = 0; // Initialize score
 
 
 // Constants for physics
@@ -30,16 +33,89 @@ const pockets = [
 ];
 
 const coins = [
-  { id: "white1", x: 270, y: 270, vx: 0, vy: 0, radius: coinRadius },
-  { id: "white2", x: 290, y: 256, vx: 0, vy: 0, radius: coinRadius },
-  { id: "black1", x: 244, y: 244, vx: 0, vy: 0, radius: coinRadius },
-  { id: "black2", x: 270, y: 230, vx: 0, vy: 0, radius: coinRadius },
-  { id: "black3", x: 235, y: 230, vx: 0, vy: 0, radius: coinRadius },
-  { id: "black4", x: 220, y: 245, vx: 0, vy: 0, radius: coinRadius },
-  { id: "white3", x: 250, y: 270, vx: 0, vy: 0, radius: coinRadius },
-  { id: "white4", x: 230, y: 270, vx: 0, vy: 0, radius: coinRadius },
-  { id: "redCoin", x: 255, y: 255, vx: 0, vy: 0, radius: coinRadius },
+  { id: "white1", x: 270, y: 270, vx: 0, vy: 0, radius: coinRadius, points: 20 },
+  { id: "white2", x: 290, y: 256, vx: 0, vy: 0, radius: coinRadius, points: 20 },
+  { id: "black1", x: 244, y: 244, vx: 0, vy: 0, radius: coinRadius, points: 10 },
+  { id: "black2", x: 270, y: 230, vx: 0, vy: 0, radius: coinRadius, points: 10 },
+  { id: "black3", x: 235, y: 230, vx: 0, vy: 0, radius: coinRadius, points: 10 },
+  { id: "black4", x: 220, y: 245, vx: 0, vy: 0, radius: coinRadius, points: 10 },
+  { id: "white3", x: 250, y: 270, vx: 0, vy: 0, radius: coinRadius, points: 20 },
+  { id: "white4", x: 230, y: 270, vx: 0, vy: 0, radius: coinRadius, points: 20 },
+  { id: "redCoin", x: 255, y: 255, vx: 0, vy: 0, radius: coinRadius, points: 50 }, // Pink coin
 ];
+
+// Update the scoreboard
+function updateScoreBoard() {
+  scoreBoard.innerText = `Score: ${score}`;
+}
+
+// Function to check if a coin or striker falls into a pocket
+function checkPocket(obj, isStriker = false) {
+  pockets.forEach((pocket) => {
+    const dx = pocket.x - obj.x;
+    const dy = pocket.y - obj.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < pocketRadius) {
+      // If the striker falls into the pocket
+      if (isStriker) {
+        isStrikerMoving = false;
+        striker.style.display = 'none'; // Hide the striker
+        console.log('Striker fell into the pocket!');
+        resetStrikerPosition(); // Reset striker position
+
+        // Re-enable the shoot button when striker falls into a pocket
+        shootBtn.disabled = false;
+
+        // Re-enable the horizontal control when striker falls into a pocket
+        horizontalControl.disabled = false;
+      } else {
+        const coinElement = document.getElementById(obj.id);
+        coinElement.style.display = 'none'; // Hide the coin
+        obj.inPlay = false;
+
+        // Update the score based on the coin's points
+        score += obj.points;
+        updateScoreBoard(); // Update the scoreboard
+        console.log(`Coin ${obj.id} fell into the pocket! Points: ${obj.points}`);
+      }
+    }
+  });
+}
+
+// Reset striker position to the starting point
+function resetStrikerPosition() {
+  strikerPosition = { x: 238, y: 419 };
+  strikerVelocity = { x: 0, y: 0 };
+  striker.style.left = `${strikerPosition.x}px`;
+  striker.style.top = `${strikerPosition.y}px`;
+  striker.style.display = 'block'; // Show the striker again
+}
+
+// Update coin positions and handle border collisions
+function updateCoins() {
+  coins.forEach((coin) => {
+    if (coin.inPlay === false) return;
+
+    coin.x += coin.vx;
+    coin.y += coin.vy;
+
+    // Apply friction
+    coin.vx *= friction;
+    coin.vy *= friction;
+
+    // Check if the coin falls into a pocket
+    checkPocket(coin);
+
+    // Update coin position on screen
+    const coinElement = document.getElementById(coin.id);
+    coinElement.style.left = `${coin.x - coin.radius}px`;
+    coinElement.style.top = `${coin.y - coin.radius}px`;
+  });
+}
+// Initialize the scoreboard when the game starts
+updateScoreBoard();
+
 
 function updateDirectionBar() {
   const angle = parseFloat(angleControl.value); // Get angle value
@@ -230,6 +306,14 @@ function checkPocket(obj, isStriker = false) {
         coinElement.style.display = 'none'; // Hide the coin
         obj.inPlay = false;
         console.log(`Coin ${obj.id} fell into the pocket!`);
+
+
+
+        // Update score
+        score += obj.points;
+        updateScoreBoard(); // Update the displayed score
+        console.log(`Coin ${obj.id} fell into the pocket! Points: ${obj.points}`);
+
       }
     }
   });
@@ -449,7 +533,6 @@ function updateCoins() {
     coinElement.style.top = `${coin.y - coin.radius}px`;
   });
 }
-
 // Game loop
 function gameLoop() {
   updateStriker();

@@ -21,9 +21,9 @@ body {
 }
 
 .pocket {
-  width: 27px;
-  height: 27px;
-  background-color: #323232;
+  width: 28px;
+  height: 28px;
+  background-color: #ff00005e;
   position: absolute;
   border-radius: 50%;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
