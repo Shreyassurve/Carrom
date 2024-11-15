@@ -9,6 +9,9 @@ const directionBar = document.querySelector('.direction-bar');
 const predictionCanvas = document.getElementById("predictionCanvas");
 const ctx = predictionCanvas.getContext("3d");
 const horizontalControl = document.getElementById('horizontalControl'); // Get the horizontal control slider
+
+
+
 // Constants for physics
 const friction = 0.98;
 const strikerRadius = 20;
@@ -27,24 +30,27 @@ const pockets = [
 ];
 
 const coins = [
-  { id: "white1", x: 230, y: 180, vx: 0, vy: 0, radius: coinRadius },
-  { id: "white2", x: 260, y: 180, vx: 0, vy: 0, radius: coinRadius },
-  { id: "black1", x: 200, y: 230, vx: 0, vy: 0, radius: coinRadius },
+  { id: "white1", x: 270, y: 270, vx: 0, vy: 0, radius: coinRadius },
+  { id: "white2", x: 290, y: 256, vx: 0, vy: 0, radius: coinRadius },
+  { id: "black1", x: 244, y: 244, vx: 0, vy: 0, radius: coinRadius },
   { id: "black2", x: 270, y: 230, vx: 0, vy: 0, radius: coinRadius },
-  { id: "white3", x: 250, y: 180, vx: 0, vy: 0, radius: coinRadius },
-  { id: "redCoin", x: 230, y: 230, vx: 0, vy: 0, radius: coinRadius },
+  { id: "black3", x: 235, y: 230, vx: 0, vy: 0, radius: coinRadius },
+  { id: "black4", x: 220, y: 245, vx: 0, vy: 0, radius: coinRadius },
+  { id: "white3", x: 250, y: 270, vx: 0, vy: 0, radius: coinRadius },
+  { id: "white4", x: 230, y: 270, vx: 0, vy: 0, radius: coinRadius },
+  { id: "redCoin", x: 255, y: 255, vx: 0, vy: 0, radius: coinRadius },
 ];
 
-// Update the direction bar to show the selected angle
 function updateDirectionBar() {
   const angle = parseFloat(angleControl.value); // Get angle value
   const radians = (angle * Math.PI) / 180;
 
   // Position and rotate the direction bar
   directionBar.style.transform = `rotate(${angle}deg)`;
-  directionBar.style.left = `${strikerPosition.x + strikerRadius}px`;
-  directionBar.style.top = `${strikerPosition.y}px`;
+  directionBar.style.left = `${strikerPosition.x + strikerRadius}px`; // Adjust direction bar position based on striker
+  directionBar.style.top = `${strikerPosition.y}px`; // Place the direction bar at the striker's position
 }
+
 
 // Shoot the striker
 function shootStriker() {
@@ -61,24 +67,43 @@ function shootStriker() {
   shootBtn.disabled = true;
 }
 
+// Function to draw direction line (arrow) on the prediction canvas
 function drawDirectionLine() {
-  ctx.clearRect(0, 0, predictionCanvas.width, predictionCanvas.height);
-  const angle = parseFloat(angleControl.value);
+  ctx.clearRect(0, 0, predictionCanvas.width, predictionCanvas.height); // Clear canvas
+
+  const angle = parseFloat(angleControl.value); // Get selected angle
   const radians = (angle * Math.PI) / 180;
 
-  const lineLength = 150; // Length of the line
-  const endX = strikerPosition.x + Math.cos(radians) * lineLength;
-  const endY = strikerPosition.y - Math.sin(radians) * lineLength;
+  const lineLength = 100; // Length of the arrow/line
+  const endX = strikerPosition.x + Math.cos(radians) * lineLength; // End position X of the arrow
+  const endY = strikerPosition.y - Math.sin(radians) * lineLength; // End position Y of the arrow
 
+  // Draw the line (arrow) to indicate direction
   ctx.beginPath();
-  ctx.moveTo(strikerPosition.x, strikerPosition.y);
-  ctx.lineTo(endX, endY);
-  ctx.strokeStyle = "blue";
-  ctx.lineWidth = 2;
+  ctx.moveTo(strikerPosition.x, strikerPosition.y); // Starting point (striker position)
+  ctx.lineTo(endX, endY); // Ending point (calculated based on angle)
+  ctx.strokeStyle = "blue"; // Arrow color
+  ctx.lineWidth = 2; // Arrow line width
+  ctx.stroke(); // Draw the line
+
+  // Optionally, draw an arrowhead
+  const arrowSize = 10; // Size of the arrowhead
+  const angleOffset = Math.PI / 6; // Angle for the arrowhead
+  ctx.beginPath();
+  ctx.moveTo(endX, endY);
+  ctx.lineTo(endX - arrowSize * Math.cos(radians - angleOffset), endY + arrowSize * Math.sin(radians - angleOffset)); // Left arrowhead
+  ctx.moveTo(endX, endY);
+  ctx.lineTo(endX - arrowSize * Math.cos(radians + angleOffset), endY + arrowSize * Math.sin(radians + angleOffset)); // Right arrowhead
+  ctx.strokeStyle = "blue"; // Arrowhead color
+  ctx.lineWidth = 2; // Arrowhead line width
   ctx.stroke();
 }
 
-angleControl.addEventListener("input", drawDirectionLine);
+// Event listener for when the angle control slider is adjusted
+angleControl.addEventListener("input", function() {
+  drawDirectionLine(); // Redraw the direction line whenever the angle is changed
+});
+
 
 function updateStriker() {
   if (isStrikerMoving) {
@@ -210,6 +235,56 @@ function checkPocket(obj, isStriker = false) {
   });
 }
 
+
+// Function to draw navigation path (predicted movement of striker)
+function drawNavigationLine() {
+  ctx.clearRect(0, 0, predictionCanvas.width, predictionCanvas.height); // Clear previous drawing
+
+  const angle = parseFloat(angleControl.value); // Get the selected angle
+  const speed = parseFloat(speedControl.value) * 2; // Get the selected speed
+  const radians = (angle * Math.PI) / 180;
+
+  const navigationLineLength = 200; // Length of the navigation path
+  let x = strikerPosition.x;
+  let y = strikerPosition.y;
+  let velocityX = Math.cos(radians) * speed;
+  let velocityY = Math.sin(radians) * speed;
+
+  // Draw the predicted path
+  ctx.beginPath();
+  ctx.moveTo(x, y); // Start from the striker's current position
+
+  for (let i = 0; i < 50; i++) { // 50 steps for path prediction
+    x += velocityX;
+    y += velocityY;
+
+    // Apply friction to simulate deceleration
+    velocityX *= friction;
+    velocityY *= friction;
+
+    // Draw a small segment to form the navigation line
+    ctx.lineTo(x, y);
+  }
+
+  ctx.strokeStyle = "green"; // Navigation line color
+  ctx.lineWidth = 1; // Line width
+  ctx.stroke(); // Draw the path
+
+  // Optionally, we can add a fading effect (to simulate distance) or a color gradient to make it look more realistic.
+}
+
+// Event listener for the angle control slider to update the navigation line
+angleControl.addEventListener("input", function() {
+  drawDirectionLine();  // Redraw direction line
+  drawNavigationLine(); // Redraw navigation path
+});
+
+speedControl.addEventListener("input", function() {
+  drawNavigationLine(); // Redraw navigation path when speed changes
+});
+
+
+
 // Update the striker position and check if it is still moving
 function updateStriker() {
   if (isStrikerMoving) {
@@ -269,9 +344,6 @@ function updateStriker() {
     });
   }
 }
-
-
-
 // Update coin positions
 function updateCoins() {
   coins.forEach((coin) => {
@@ -293,7 +365,6 @@ function updateCoins() {
     coinElement.style.top = `${coin.y}px`;
   });
 }
-
 // Predict the best shot
 function predictShot() {
   if (isStrikerMoving) return; // Avoid predictions while the striker is in motion

@@ -76,6 +76,7 @@ body {
   border-radius: 50%;
   transform-origin: bottom;
   pointer-events: none;
+  
 }
 
 #controls {
