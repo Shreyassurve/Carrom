@@ -6,7 +6,9 @@ const predictBtn = document.getElementById('predictBtn'); // Button for predicti
 const speedControl = document.getElementById('speedControl');
 const angleControl = document.getElementById('angleControl');
 const directionBar = document.querySelector('.direction-bar');
-
+const predictionCanvas = document.getElementById("predictionCanvas");
+const ctx = predictionCanvas.getContext("3d");
+const horizontalControl = document.getElementById('horizontalControl'); // Get the horizontal control slider
 // Constants for physics
 const friction = 0.98;
 const strikerRadius = 20;
@@ -28,6 +30,7 @@ const coins = [
   { id: "white1", x: 230, y: 180, vx: 0, vy: 0, radius: coinRadius },
   { id: "white2", x: 260, y: 180, vx: 0, vy: 0, radius: coinRadius },
   { id: "black1", x: 200, y: 230, vx: 0, vy: 0, radius: coinRadius },
+  { id: "black2", x: 270, y: 230, vx: 0, vy: 0, radius: coinRadius },
   { id: "white3", x: 250, y: 180, vx: 0, vy: 0, radius: coinRadius },
   { id: "redCoin", x: 230, y: 230, vx: 0, vy: 0, radius: coinRadius },
 ];
@@ -46,7 +49,7 @@ function updateDirectionBar() {
 // Shoot the striker
 function shootStriker() {
   const angle = parseFloat(angleControl.value); // Use the selected angle
-  const speed = parseFloat(speedControl.value);
+  const speed = parseFloat(speedControl.value) * 2;
   const radians = (angle * Math.PI) / 180;
 
   // Assign initial velocity based on angle and speed
@@ -56,6 +59,49 @@ function shootStriker() {
 
   // Disable the shoot button to prevent further clicks while the striker is moving
   shootBtn.disabled = true;
+}
+
+function drawDirectionLine() {
+  ctx.clearRect(0, 0, predictionCanvas.width, predictionCanvas.height);
+  const angle = parseFloat(angleControl.value);
+  const radians = (angle * Math.PI) / 180;
+
+  const lineLength = 150; // Length of the line
+  const endX = strikerPosition.x + Math.cos(radians) * lineLength;
+  const endY = strikerPosition.y - Math.sin(radians) * lineLength;
+
+  ctx.beginPath();
+  ctx.moveTo(strikerPosition.x, strikerPosition.y);
+  ctx.lineTo(endX, endY);
+  ctx.strokeStyle = "blue";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+angleControl.addEventListener("input", drawDirectionLine);
+
+function updateStriker() {
+  if (isStrikerMoving) {
+    // Calculate speed magnitude
+    const speed = Math.sqrt(strikerVelocity.x ** 2 + strikerVelocity.y ** 2);
+    const maxSpeed = 20; // Maximum speed limit
+
+    // Apply speed limit
+    if (speed > maxSpeed) {
+      strikerVelocity.x *= maxSpeed / speed;
+      strikerVelocity.y *= maxSpeed / speed;
+    }
+
+    // Update position and check for collisions
+    strikerPosition.x += strikerVelocity.x;
+    strikerPosition.y += strikerVelocity.y;
+
+    // Apply friction
+    strikerVelocity.x *= friction;
+    strikerVelocity.y *= friction;
+
+    // Other existing logic...
+  }
 }
 
 // Check for collision between two circular objects
@@ -134,9 +180,42 @@ function resetStrikerPosition() {
   striker.style.display = 'block'; // Show the striker again
 }
 
-// Update striker position
+// Check if a coin or striker falls into a pocket
+function checkPocket(obj, isStriker = false) {
+  pockets.forEach((pocket) => {
+    const dx = pocket.x - obj.x;
+    const dy = pocket.y - obj.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < pocketRadius) {
+      // If the striker falls into the pocket
+      if (isStriker) {
+        isStrikerMoving = false;
+        striker.style.display = 'none'; // Hide the striker
+        console.log('Striker fell into the pocket!');
+        resetStrikerPosition(); // Reset striker position
+
+        // Re-enable the shoot button when striker falls into a pocket
+        shootBtn.disabled = false;
+
+        // Re-enable the horizontal control when striker falls into a pocket
+        horizontalControl.disabled = false;
+      } else {
+        const coinElement = document.getElementById(obj.id);
+        coinElement.style.display = 'none'; // Hide the coin
+        obj.inPlay = false;
+        console.log(`Coin ${obj.id} fell into the pocket!`);
+      }
+    }
+  });
+}
+
+// Update the striker position and check if it is still moving
 function updateStriker() {
   if (isStrikerMoving) {
+    // Disable horizontal control when the striker is moving
+    horizontalControl.disabled = true;
+
     strikerPosition.x += strikerVelocity.x;
     strikerPosition.y += strikerVelocity.y;
 
@@ -159,6 +238,9 @@ function updateStriker() {
 
       // Re-enable the shoot button since the striker has stopped
       shootBtn.disabled = false;
+
+      // Re-enable the horizontal control when the striker stops
+      horizontalControl.disabled = false;
     }
 
     // Check if striker falls into a pocket
@@ -187,6 +269,8 @@ function updateStriker() {
     });
   }
 }
+
+
 
 // Update coin positions
 function updateCoins() {
@@ -254,6 +338,16 @@ function predictShot() {
     console.log(`Aim at coin: ${bestCoin.id}, Angle: ${angle.toFixed(2)}`);
   }
 }
+
+
+
+// Event listener for horizontal movement of the striker
+horizontalControl.addEventListener('input', function() {
+  strikerPosition.x = parseFloat(horizontalControl.value);
+  striker.style.left = `${strikerPosition.x}px`; // Update the striker's position visually
+});
+
+
 // Update coin positions and handle border collisions
 function updateCoins() {
   coins.forEach((coin) => {
@@ -275,7 +369,6 @@ function updateCoins() {
       coin.vy *= -1; // Reverse vertical velocity
       coin.y = Math.max(coin.radius, Math.min(coin.y, gameBoard.offsetHeight - coin.radius)); // Keep coin within bounds
     }
-
     // Check if the coin falls into a pocket
     checkPocket(coin);
 
