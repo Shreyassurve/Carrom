@@ -254,6 +254,37 @@ function predictShot() {
     console.log(`Aim at coin: ${bestCoin.id}, Angle: ${angle.toFixed(2)}`);
   }
 }
+// Update coin positions and handle border collisions
+function updateCoins() {
+  coins.forEach((coin) => {
+    if (coin.inPlay === false) return;
+
+    coin.x += coin.vx;
+    coin.y += coin.vy;
+
+    // Apply friction
+    coin.vx *= friction;
+    coin.vy *= friction;
+
+    // Check for board edges
+    if (coin.x - coin.radius <= 0 || coin.x + coin.radius >= gameBoard.offsetWidth) {
+      coin.vx *= -1; // Reverse horizontal velocity
+      coin.x = Math.max(coin.radius, Math.min(coin.x, gameBoard.offsetWidth - coin.radius)); // Keep coin within bounds
+    }
+    if (coin.y - coin.radius <= 0 || coin.y + coin.radius >= gameBoard.offsetHeight) {
+      coin.vy *= -1; // Reverse vertical velocity
+      coin.y = Math.max(coin.radius, Math.min(coin.y, gameBoard.offsetHeight - coin.radius)); // Keep coin within bounds
+    }
+
+    // Check if the coin falls into a pocket
+    checkPocket(coin);
+
+    // Update coin position on screen
+    const coinElement = document.getElementById(coin.id);
+    coinElement.style.left = `${coin.x - coin.radius}px`;
+    coinElement.style.top = `${coin.y - coin.radius}px`;
+  });
+}
 
 // Game loop
 function gameLoop() {
